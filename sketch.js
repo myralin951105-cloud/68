@@ -12,11 +12,11 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(640, 480);
+  createCanvas(windowWidth, windowHeight);
   
   // 初始化視訊鏡頭
   video = createCapture(VIDEO);
-  video.size(width, height);
+  video.size(windowWidth, windowHeight);
   video.hide(); // 隱藏原生 HTML 視訊標籤，我們要在 canvas 裡畫出來
   
   // 開始偵測手部
@@ -26,6 +26,12 @@ function setup() {
   for (let i = 0; i < numFishes; i++) {
     fishes.push(new Fish());
   }
+}
+
+function windowResized() {
+  // 當視窗大小改變時，重新調整畫布與視訊大小
+  resizeCanvas(windowWidth, windowHeight);
+  video.size(windowWidth, windowHeight);
 }
 
 function gotHands(results) {
