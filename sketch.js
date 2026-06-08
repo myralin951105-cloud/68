@@ -1,8 +1,15 @@
 let video;
+let handPose;
+let hands = [];
 let fishes = [];
 let numFishes = 6;
 let score = 0;
 let netRadius = 50; // 撈網的半徑
+
+function preload() {
+  // 載入手部辨識模型
+  handPose = ml5.handPose({ flipHorizontal: true });
+}
 
 function setup() {
   createCanvas(640, 480);
@@ -12,10 +19,17 @@ function setup() {
   video.size(width, height);
   video.hide(); // 隱藏原生 HTML 視訊標籤，我們要在 canvas 裡畫出來
   
+  // 開始偵測手部
+  handPose.detectStart(video, gotHands);
+
   // 初始化金魚的位置與速度
   for (let i = 0; i < numFishes; i++) {
     fishes.push(new Fish());
   }
+}
+
+function gotHands(results) {
+  hands = results;
 }
 
 function draw() {
@@ -40,8 +54,27 @@ function draw() {
     fishes[i].display();
   }
   
-  // 繪製撈網（這裡以滑鼠位置代表撈網，在影像辨識中可以對應到特定顏色的手套或物體座標）
-  drawNet(mouseX, mouseY);
+  // 預設撈網位置與狀態
+  let nx = mouseX;
+  let ny = mouseY;
+  let isScooping = mouseIsPressed;
+
+  // 如果偵測到手，改用食指座標，並以「捏合」動作作為撈魚指令
+  if (hands.length > 0) {
+    let hand = hands[0];
+    let indexTip = hand.keypoints[8]; // 食指尖
+    let thumbTip = hand.keypoints[4]; // 大拇指尖
+    
+    nx = indexTip.x;
+    ny = indexTip.y;
+    
+    // 計算食指與大拇指的距離，小於 40 像素視為「捏合」
+    let pinchDist = dist(indexTip.x, indexTip.y, thumbTip.x, thumbTip.y);
+    isScooping = pinchDist < 40;
+  }
+
+  // 繪製撈網
+  drawNet(nx, ny, isScooping);
   
   // 顯示分數與教學提示
   drawUI();
@@ -97,13 +130,13 @@ class Fish {
 }
 
 // 繪製撈網並偵測是否有撈到金魚
-function drawNet(nx, ny) {
+function drawNet(nx, ny, isScooping) {
   // 偵測撈網與每條金魚的距離
   for (let i = 0; i < fishes.length; i++) {
     let d = dist(nx, ny, fishes[i].x, fishes[i].y);
     
-    // 如果魚在撈網範圍內，且玩家按下按鍵/滑鼠（代表撈的動作）
-    if (d < netRadius && mouseIsPressed) {
+    // 如果魚在撈網範圍內，且處於撈的動作狀態
+    if (d < netRadius && isScooping) {
       score += 10;
       fishes[i].reset(); // 撈到後重置該金魚
     }
@@ -111,7 +144,7 @@ function drawNet(nx, ny) {
   
   // 畫出網子外框（紅色代表準備撈，白色代表一般狀態）
   noFill();
-  if (mouseIsPressed) {
+  if (isScooping) {
     stroke(255, 0, 0);
     strokeWeight(4);
   } else {
@@ -139,5 +172,5 @@ function drawUI() {
   text("Score: " + score, 20, 20);
   
   textSize(16);
-  text("遊戲說明：移動網子並【按住滑鼠】來撈起金魚！", 20, 55);
+  text("遊戲說明：伸出手掌，用【食指與大拇指捏合】來撈起金魚！", 20, 55);
 }
