@@ -171,6 +171,16 @@ function drawNet(nx, ny, isScooping) {
 
 // 顯示遊戲介面文字
 function drawUI() {
+  // 顯示遊戲標題
+  push();
+  textAlign(CENTER, TOP);
+  textSize(42);
+  fill(255, 255, 0); // 使用亮黃色
+  stroke(0);
+  strokeWeight(4);
+  text("歡樂撈金魚", width / 2, 10);
+  pop();
+
   fill(255);
   noStroke();
   textSize(24);
